@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Medication Tracker{% endblock %}
+
+{% block content %}
+<div class="jumbotron">
+    <h1 class="display-4">Welcome to MedTracker</h1>
+    <p class="lead">The simple way to track your medications and improve your health.</p>
+    <hr class="my-4">
+    <p>Track your medications, log when you take them, and maintain your health journey all in one place.</p>
+    <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}" role="button">Go to Dashboard</a>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Track Medications</h5>
+                <p class="card-text">Add your medications with dosage, schedule, and images.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Log Your Doses</h5>
+                <p class="card-text">Record when you take your medications and see your adherence over time.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Stay Organized</h5>
+                <p class="card-text">Keep all your medical information in one secure place.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

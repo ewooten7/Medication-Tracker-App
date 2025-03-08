@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}Add Medication - Medication Tracker{% endblock %}
+
+{% block content %}
+<h1>Add New Medication</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                Medication Information
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Medication Name</label>
+                        <input type="text" class="form-control" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="dosage" class="form-label">Dosage</label>
+                        <input type="text" class="form-control" id="dosage" name="dosage" placeholder="e.g., 10mg" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="frequency" class="form-label">Frequency</label>
+                        <select class="form-select" id="frequency" name="frequency" required>
+                            <option value="">Select frequency</option>
+                            <option value="Once daily">Once daily</option>
+                            <option value="Twice daily">Twice daily</option>
+                            <option value="Three times daily">Three times daily</option>
+                            <option value="Four times daily">Four times daily</option>
+                            <option value="Every other day">Every other day</option>
+                            <option value="Weekly">Weekly</option>
+                            <option value="As needed">As needed</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="time_of_day" class="form-label">Time of Day</label>
+                        <select class="form-select" id="time_of_day" name="time_of_day" required>
+                            <option value="">Select time</option>
+                            <option value="Morning">Morning</option>
+                            <option value="Afternoon">Afternoon</option>
+                            <option value="Evening">Evening</option>
+                            <option value="Bedtime">Bedtime</option>
+                            <option value="With meals">With meals</option>
+                            <option value="Before meals">Before meals</option>
+                            <option value="After meals">After meals</option>
+                            <option value="Multiple times">Multiple times</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="end_date" class="form-label">End Date (Optional)</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="medication_image" class="form-label">Medication Image (Optional)</label>
+                        <input type="file" class="form-control" id="medication_image" name="medication_image" accept="image/*">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Save Medication</button>
+                    <a href="{{ url_for('list_medications') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                Tips for Adding Medications
+            </div>
+            <div class="card-body">
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">Include the exact name as on the label</li>
+                    <li class="list-group-item">Specify the dosage with units (mg, ml, etc.)</li>
+                    <li class="list-group-item">Upload a clear image of the medication label if possible</li>
+                    <li class="list-group-item">Add any special instructions in the notes</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
