@@ -28,8 +28,8 @@
                         <span class="badge bg-danger rounded-pill">Missed</span>
                         {% else %}
                         <div>
-                            <a href="#" class="btn btn-sm btn-success">Mark as Taken</a>
-                            <a href="#" class="btn btn-sm btn-danger">Mark as Missed</a>
+                            <a href="{{ url_for('log_medication', medication_id=med_info.medication.id, status='taken') }}" class="btn btn-sm btn-success">Mark as Taken</a>
+                            <a href="{{ url_for('log_medication', medication_id=med_info.medication.id, status='missed') }}" class="btn btn-sm btn-danger">Mark as Missed</a>
                         </div>
                         {% endif %}
                     </li>
@@ -39,7 +39,7 @@
                 <p>No medications scheduled for today.</p>
                 {% endif %}
                 <div class="mt-3">
-                    <a href="#" class="btn btn-primary">Add New Medication</a>
+                    <a href="{{ url_for('add_medication') }}" class="btn btn-primary">Add New Medication</a>
                 </div>
             </div>
         </div>

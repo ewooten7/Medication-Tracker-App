@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Medication - Medication Tracker{% endblock %}
+
+{% block content %}
+<h1>Edit Medication</h1>
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                Medication Information
+            </div>
+            <div class="card-body">
+                <form method="POST" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="name" class="form-label">Medication Name</label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ medication.name }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="dosage" class="form-label">Dosage</label>
+                        <input type="text" class="form-control" id="dosage" name="dosage" value="{{ medication.dosage }}" placeholder="e.g., 10mg" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="frequency" class="form-label">Frequency</label>
+                        <select class="form-select" id="frequency" name="frequency" required>
+                            <option value="">Select frequency</option>
+                            <option value="Once daily" {% if medication.frequency == "Once daily" %}selected{% endif %}>Once daily</option>
+                            <option value="Twice daily" {% if medication.frequency == "Twice daily" %}selected{% endif %}>Twice daily</option>
+                            <option value="Three times daily" {% if medication.frequency == "Three times daily" %}selected{% endif %}>Three times daily</option>
+                            <option value="Four times daily" {% if medication.frequency == "Four times daily" %}selected{% endif %}>Four times daily</option>
+                            <option value="Every other day" {% if medication.frequency == "Every other day" %}selected{% endif %}>Every other day</option>
+                            <option value="Weekly" {% if medication.frequency == "Weekly" %}selected{% endif %}>Weekly</option>
+                            <option value="As needed" {% if medication.frequency == "As needed" %}selected{% endif %}>As needed</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="time_of_day" class="form-label">Time of Day</label>
+                        <select class="form-select" id="time_of_day" name="time_of_day" required>
+                            <option value="">Select time</option>
+                            <option value="Morning" {% if medication.time_of_day == "Morning" %}selected{% endif %}>Morning</option>
+                            <option value="Afternoon" {% if medication.time_of_day == "Afternoon" %}selected{% endif %}>Afternoon</option>
+                            <option value="Evening" {% if medication.time_of_day == "Evening" %}selected{% endif %}>Evening</option>
+                            <option value="Bedtime" {% if medication.time_of_day == "Bedtime" %}selected{% endif %}>Bedtime</option>
+                            <option value="With meals" {% if medication.time_of_day == "With meals" %}selected{% endif %}>With meals</option>
+                            <option value="Before meals" {% if medication.time_of_day == "Before meals" %}selected{% endif %}>Before meals</option>
+                            <option value="After meals" {% if medication.time_of_day == "After meals" %}selected{% endif %}>After meals</option>
+                            <option value="Multiple times" {% if medication.time_of_day == "Multiple times" %}selected{% endif %}>Multiple times</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="start_date" class="form-label">Start Date</label>
+                        <input type="date" class="form-control" id="start_date" name="start_date" value="{{ medication.start_date.strftime('%Y-%m-%d') }}" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="end_date" class="form-label">End Date (Optional)</label>
+                        <input type="date" class="form-control" id="end_date" name="end_date" value="{% if medication.end_date %}{{ medication.end_date.strftime('%Y-%m-%d') }}{% endif %}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes (Optional)</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3">{{ medication.notes or '' }}</textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="medication_image" class="form-label">Medication Image (Optional)</label>
+                        {% if medication.image_path %}
+                        <div class="mb-2">
+                            <img src="{{ url_for('static', filename=medication.image_path) }}" class="img-thumbnail" style="max-height: 100px;" alt="{{ medication.name }}">
+                            <p class="small text-muted">Current image</p>
+                        </div>
+                        {% endif %}
+                        <input type="file" class="form-control" id="medication_image" name="medication_image" accept="image/*">
+                        <small class="form-text text-muted">Upload a new image to replace the current one.</small>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                    <a href="{{ url_for('list_medications') }}" class="btn btn-secondary">Cancel</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

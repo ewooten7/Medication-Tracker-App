@@ -4,25 +4,18 @@ from datetime import datetime, date
 import os
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
-import boto3
 import uuid
 
 # Initialize Flask app
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # Change this to a random secret key in production
 
-# Database configuration - this will be updated for RDS in production
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///medication_tracker.db'  # Local development
+# Database configuration - SQLite for local development
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///medication_tracker.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Initialize SQLAlchemy
 db = SQLAlchemy(app)
-
-# AWS S3 configuration
-app.config['S3_BUCKET'] = os.environ.get('S3_BUCKET', 'medication-tracker-files')
-app.config['S3_KEY'] = os.environ.get('AWS_ACCESS_KEY_ID')
-app.config['S3_SECRET'] = os.environ.get('AWS_SECRET_ACCESS_KEY')
-app.config['S3_REGION'] = os.environ.get('AWS_REGION', 'us-east-1')
 
 # Models
 class User(db.Model):
@@ -47,7 +40,7 @@ class Medication(db.Model):
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=True)
     notes = db.Column(db.Text, nullable=True)
-    image_url = db.Column(db.String(255), nullable=True)
+    image_path = db.Column(db.String(255), nullable=True)  # Path to locally stored image
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     logs = db.relationship('MedicationLog', backref='medication', lazy=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -59,41 +52,34 @@ class MedicationLog(db.Model):
     taken = db.Column(db.Boolean, default=True)
     notes = db.Column(db.Text, nullable=True)
 
-# S3 helper function
-def upload_file_to_s3(file):
-    """Upload a file to S3 bucket and return the URL"""
-    if not app.config['S3_KEY'] or not app.config['S3_SECRET']:
-        # For local development without S3
+# Local file upload function (replaces S3)
+def save_file_locally(file):
+    """Save a file to local storage and return the path"""
+    if not file:
         return None
-    
-    s3 = boto3.client(
-        "s3",
-        aws_access_key_id=app.config['S3_KEY'],
-        aws_secret_access_key=app.config['S3_SECRET'],
-        region_name=app.config['S3_REGION']
-    )
+        
+    # Create uploads directory if it doesn't exist
+    upload_folder = os.path.join(app.static_folder, 'uploads')
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
     
     filename = secure_filename(file.filename)
     unique_filename = f"{uuid.uuid4().hex}-{filename}"
+    file_path = os.path.join(upload_folder, unique_filename)
     
     try:
-        s3.upload_fileobj(
-            file,
-            app.config['S3_BUCKET'],
-            unique_filename,
-            ExtraArgs={"ACL": "public-read", "ContentType": file.content_type}
-        )
+        file.save(file_path)
+        # Return the relative path for database storage
+        return f"uploads/{unique_filename}"
     except Exception as e:
-        print(f"Error uploading to S3: {e}")
+        print(f"Error saving file: {e}")
         return None
-        
-    return f"https://{app.config['S3_BUCKET']}.s3.amazonaws.com/{unique_filename}"
 
 # Routes
 @app.route('/')
 def index():
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
+    if 'user_id' in session:
+        return redirect(url_for('dashboard'))
     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -153,9 +139,13 @@ def dashboard():
     for med in user.medications:
         if med.start_date <= today and (med.end_date is None or med.end_date >= today):
             # Check if medication has been taken today
-            today_log = MedicationLog.query.filter_by(
-                medication_id=med.id, 
-                taken_at=datetime.now().strftime('%Y-%m-%d')
+            today_start = datetime.combine(today, datetime.min.time())
+            today_end = datetime.combine(today, datetime.max.time())
+            
+            today_log = MedicationLog.query.filter(
+                MedicationLog.medication_id == med.id,
+                MedicationLog.taken_at >= today_start,
+                MedicationLog.taken_at <= today_end
             ).first()
             
             todays_medications.append({
@@ -165,7 +155,6 @@ def dashboard():
     
     return render_template('dashboard.html', medications=todays_medications, user=user)
 
-# Add more routes for medications CRUD operations
 @app.route('/medications')
 def list_medications():
     if 'user_id' not in session:
@@ -190,11 +179,11 @@ def add_medication():
         end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date() if request.form['end_date'] else None
         notes = request.form['notes']
         
-        # Handle image upload
-        image_url = None
+        # Handle image upload locally
+        image_path = None
         if 'medication_image' in request.files and request.files['medication_image'].filename:
             file = request.files['medication_image']
-            image_url = upload_file_to_s3(file)
+            image_path = save_file_locally(file)
         
         new_medication = Medication(
             name=name,
@@ -204,7 +193,7 @@ def add_medication():
             start_date=start_date,
             end_date=end_date,
             notes=notes,
-            image_url=image_url,
+            image_path=image_path,
             user_id=session['user_id']
         )
         
@@ -215,6 +204,87 @@ def add_medication():
         return redirect(url_for('list_medications'))
     
     return render_template('add_medication.html')
+
+@app.route('/medications/log/<int:medication_id>/<string:status>')
+def log_medication(medication_id, status):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    medication = Medication.query.get_or_404(medication_id)
+    
+    # Verify this medication belongs to the current user
+    if medication.user_id != session['user_id']:
+        flash('Unauthorized access!')
+        return redirect(url_for('dashboard'))
+    
+    taken = True if status == 'taken' else False
+    
+    log = MedicationLog(
+        medication_id=medication_id,
+        taken=taken,
+        taken_at=datetime.now()
+    )
+    
+    db.session.add(log)
+    db.session.commit()
+    
+    flash(f'Medication marked as {"taken" if taken else "missed"}!')
+    return redirect(url_for('dashboard'))
+
+@app.route('/medications/edit/<int:id>', methods=['GET', 'POST'])
+def edit_medication(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    medication = Medication.query.get_or_404(id)
+    
+    # Verify this medication belongs to the current user
+    if medication.user_id != session['user_id']:
+        flash('Unauthorized access!')
+        return redirect(url_for('list_medications'))
+    
+    if request.method == 'POST':
+        medication.name = request.form['name']
+        medication.dosage = request.form['dosage']
+        medication.frequency = request.form['frequency']
+        medication.time_of_day = request.form['time_of_day']
+        medication.start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+        medication.end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date() if request.form['end_date'] else None
+        medication.notes = request.form['notes']
+        
+        # Handle image upload
+        if 'medication_image' in request.files and request.files['medication_image'].filename:
+            file = request.files['medication_image']
+            image_path = save_file_locally(file)
+            if image_path:
+                medication.image_path = image_path
+        
+        db.session.commit()
+        flash('Medication updated successfully!')
+        return redirect(url_for('list_medications'))
+    
+    return render_template('edit_medication.html', medication=medication)
+
+@app.route('/medications/delete/<int:id>')
+def delete_medication(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    medication = Medication.query.get_or_404(id)
+    
+    # Verify this medication belongs to the current user
+    if medication.user_id != session['user_id']:
+        flash('Unauthorized access!')
+        return redirect(url_for('list_medications'))
+    
+    # Delete associated logs
+    MedicationLog.query.filter_by(medication_id=id).delete()
+    
+    db.session.delete(medication)
+    db.session.commit()
+    
+    flash('Medication deleted successfully!')
+    return redirect(url_for('list_medications'))
 
 if __name__ == '__main__':
     with app.app_context():

@@ -16,8 +16,8 @@
         {% for medication in medications %}
         <div class="col-md-4 mb-4">
             <div class="card h-100">
-                {% if medication.image_url %}
-                <img src="{{ medication.image_url }}" class="card-img-top" alt="{{ medication.name }}">
+                {% if medication.image_path %}
+                <img src="{{ url_for('static', filename=medication.image_path) }}" class="card-img-top" alt="{{ medication.name }}">
                 {% else %}
                 <div class="card-img-top bg-light text-center py-5">
                     <span class="text-muted">No image</span>
