@@ -4,36 +4,65 @@
 
 {% block content %}
 <div class="jumbotron">
-    <h1 class="display-4">Welcome to MedTracker</h1>
-    <p class="lead">The simple way to track your medications and improve your health.</p>
-    <hr class="my-4">
-    <p>Track your medications, log when you take them, and maintain your health journey all in one place.</p>
-    <a class="btn btn-primary btn-lg" href="{{ url_for('dashboard') }}" role="button">Go to Dashboard</a>
+    <div class="container">
+        <h1 class="display-4">Welcome to MedTracker</h1>
+        <p class="lead">Your personal medication management assistant</p>
+        <hr class="my-4">
+        <p>Keep track of your medications, improve your adherence, and take control of your health journey.</p>
+        {% if 'user_id' in session %}
+            <a class="btn btn-light btn-lg" href="{{ url_for('dashboard') }}" role="button">Go to Dashboard</a>
+        {% else %}
+            <a class="btn btn-light btn-lg" href="{{ url_for('login') }}" role="button">Get Started</a>
+            <a class="btn btn-outline-light btn-lg ml-2" href="{{ url_for('register') }}" role="button">Create Account</a>
+        {% endif %}
+    </div>
 </div>
 
-<div class="row mt-5">
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Track Medications</h5>
-                <p class="card-text">Add your medications with dosage, schedule, and images.</p>
+<div class="container mt-5">
+    <div class="row text-center mb-4">
+        <div class="col">
+            <h2>Why Use MedTracker?</h2>
+            <p class="lead text-muted">Our simple tools help you stay on track with your medications</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 feature-card">
+                <div class="card-body text-center">
+                    <div class="feature-icon">📋</div>
+                    <h5 class="card-title">Easy Medication Management</h5>
+                    <p class="card-text">Add your medications with dosage, schedule, and images for easy identification.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 feature-card">
+                <div class="card-body text-center">
+                    <div class="feature-icon">⏰</div>
+                    <h5 class="card-title">Track Your Doses</h5>
+                    <p class="card-text">Log when you take your medications and see your adherence patterns over time.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 feature-card">
+                <div class="card-body text-center">
+                    <div class="feature-icon">📊</div>
+                    <h5 class="card-title">Monitor Your Progress</h5>
+                    <p class="card-text">View your adherence statistics and identify areas for improvement.</p>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Log Your Doses</h5>
-                <p class="card-text">Record when you take your medications and see your adherence over time.</p>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card mb-4">
-            <div class="card-body">
-                <h5 class="card-title">Stay Organized</h5>
-                <p class="card-text">Keep all your medical information in one secure place.</p>
-            </div>
+
+    <div class="row mt-5 mb-5">
+        <div class="col text-center">
+            <h3>Ready to take control of your medication routine?</h3>
+            <p class="lead">Join thousands of users who have improved their medication adherence.</p>
+            {% if 'user_id' not in session %}
+                <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg mt-3">Sign Up Now</a>
+            {% endif %}
         </div>
     </div>
 </div>
