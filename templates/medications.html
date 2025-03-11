@@ -29,6 +29,12 @@
                     <p class="card-text">
                         <strong>Frequency:</strong> {{ medication.frequency }}<br>
                         <strong>Time:</strong> {{ medication.time_of_day }}<br>
+                        <strong>How to Take:</strong> 
+                        {% if medication.how_to_take == "Other" %}
+                            {{ medication.custom_instructions }}
+                        {% else %}
+                            {{ medication.how_to_take }}
+                        {% endif %}<br>
                         <strong>Start Date:</strong> {{ medication.start_date.strftime('%Y-%m-%d') }}<br>
                         {% if medication.end_date %}
                         <strong>End Date:</strong> {{ medication.end_date.strftime('%Y-%m-%d') }}<br>

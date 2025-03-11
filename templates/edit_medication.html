@@ -45,11 +45,26 @@
                             <option value="Afternoon" {% if medication.time_of_day == "Afternoon" %}selected{% endif %}>Afternoon</option>
                             <option value="Evening" {% if medication.time_of_day == "Evening" %}selected{% endif %}>Evening</option>
                             <option value="Bedtime" {% if medication.time_of_day == "Bedtime" %}selected{% endif %}>Bedtime</option>
-                            <option value="With meals" {% if medication.time_of_day == "With meals" %}selected{% endif %}>With meals</option>
-                            <option value="Before meals" {% if medication.time_of_day == "Before meals" %}selected{% endif %}>Before meals</option>
-                            <option value="After meals" {% if medication.time_of_day == "After meals" %}selected{% endif %}>After meals</option>
                             <option value="Multiple times" {% if medication.time_of_day == "Multiple times" %}selected{% endif %}>Multiple times</option>
                         </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="how_to_take" class="form-label">How to Take</label>
+                        <select class="form-select" id="how_to_take" name="how_to_take" required onchange="toggleCustomInstructions()">
+                            <option value="">Select how to take</option>
+                            <option value="With meals" {% if medication.how_to_take == "With meals" %}selected{% endif %}>With meals</option>
+                            <option value="Before meals" {% if medication.how_to_take == "Before meals" %}selected{% endif %}>Before meals</option>
+                            <option value="After meals" {% if medication.how_to_take == "After meals" %}selected{% endif %}>After meals</option>
+                            <option value="With water" {% if medication.how_to_take == "With water" %}selected{% endif %}>With water</option>
+                            <option value="Without food" {% if medication.how_to_take == "Without food" %}selected{% endif %}>Without food</option>
+                            <option value="Other" {% if medication.how_to_take == "Other" %}selected{% endif %}>Other (specify)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="custom_instructions_div" style="display: {% if medication.how_to_take == 'Other' %}block{% else %}none{% endif %};">
+                        <label for="custom_instructions" class="form-label">Custom Instructions</label>
+                        <input type="text" class="form-control" id="custom_instructions" name="custom_instructions" value="{{ medication.custom_instructions or '' }}" placeholder="Enter specific instructions">
                     </div>
                     
                     <div class="mb-3">
@@ -86,4 +101,25 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleCustomInstructions() {
+        var howToTake = document.getElementById('how_to_take');
+        var customInstructionsDiv = document.getElementById('custom_instructions_div');
+        var customInstructions = document.getElementById('custom_instructions');
+        
+        if (howToTake.value === 'Other') {
+            customInstructionsDiv.style.display = 'block';
+            customInstructions.required = true;
+        } else {
+            customInstructionsDiv.style.display = 'none';
+            customInstructions.required = false;
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleCustomInstructions();
+    });
+</script>
 {% endblock %}

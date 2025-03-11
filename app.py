@@ -37,10 +37,12 @@ class Medication(db.Model):
     dosage = db.Column(db.String(50), nullable=False)
     frequency = db.Column(db.String(100), nullable=False)
     time_of_day = db.Column(db.String(50), nullable=False)
+    how_to_take = db.Column(db.String(50), nullable=True)  # New field for how to take
+    custom_instructions = db.Column(db.String(200), nullable=True)  # For custom/other instructions
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=True)
     notes = db.Column(db.Text, nullable=True)
-    image_path = db.Column(db.String(255), nullable=True)  # Path to locally stored image
+    image_path = db.Column(db.String(255), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     logs = db.relationship('MedicationLog', backref='medication', lazy=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -78,8 +80,7 @@ def save_file_locally(file):
 # Routes
 @app.route('/')
 def index():
-    if 'user_id' in session:
-        return redirect(url_for('dashboard'))
+    # Allow anonymous users to see the landing page
     return render_template('index.html')
 
 @app.route('/register', methods=['GET', 'POST'])
@@ -175,6 +176,8 @@ def add_medication():
         dosage = request.form['dosage']
         frequency = request.form['frequency']
         time_of_day = request.form['time_of_day']
+        how_to_take = request.form['how_to_take']
+        custom_instructions = request.form['custom_instructions'] if 'custom_instructions' in request.form else None
         start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
         end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date() if request.form['end_date'] else None
         notes = request.form['notes']
@@ -190,6 +193,8 @@ def add_medication():
             dosage=dosage,
             frequency=frequency,
             time_of_day=time_of_day,
+            how_to_take=how_to_take,
+            custom_instructions=custom_instructions,
             start_date=start_date,
             end_date=end_date,
             notes=notes,
@@ -248,6 +253,8 @@ def edit_medication(id):
         medication.dosage = request.form['dosage']
         medication.frequency = request.form['frequency']
         medication.time_of_day = request.form['time_of_day']
+        medication.how_to_take = request.form['how_to_take']
+        medication.custom_instructions = request.form['custom_instructions'] if 'custom_instructions' in request.form else None
         medication.start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
         medication.end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date() if request.form['end_date'] else None
         medication.notes = request.form['notes']

@@ -45,11 +45,26 @@
                             <option value="Afternoon">Afternoon</option>
                             <option value="Evening">Evening</option>
                             <option value="Bedtime">Bedtime</option>
+                            <option value="Multiple times">Multiple times</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="how_to_take" class="form-label">How to Take</label>
+                        <select class="form-select" id="how_to_take" name="how_to_take" required onchange="toggleCustomInstructions()">
+                            <option value="">Select how to take</option>
                             <option value="With meals">With meals</option>
                             <option value="Before meals">Before meals</option>
                             <option value="After meals">After meals</option>
-                            <option value="Multiple times">Multiple times</option>
+                            <option value="With water">With water</option>
+                            <option value="Without food">Without food</option>
+                            <option value="Other">Other (specify)</option>
                         </select>
+                    </div>
+                    
+                    <div class="mb-3" id="custom_instructions_div" style="display: none;">
+                        <label for="custom_instructions" class="form-label">Custom Instructions</label>
+                        <input type="text" class="form-control" id="custom_instructions" name="custom_instructions" placeholder="Enter specific instructions">
                     </div>
                     
                     <div class="mb-3">
@@ -95,4 +110,20 @@
         </div>
     </div>
 </div>
+
+<script>
+    function toggleCustomInstructions() {
+        var howToTake = document.getElementById('how_to_take');
+        var customInstructionsDiv = document.getElementById('custom_instructions_div');
+        var customInstructions = document.getElementById('custom_instructions');
+        
+        if (howToTake.value === 'Other') {
+            customInstructionsDiv.style.display = 'block';
+            customInstructions.required = true;
+        } else {
+            customInstructionsDiv.style.display = 'none';
+            customInstructions.required = false;
+        }
+    }
+</script>
 {% endblock %}
