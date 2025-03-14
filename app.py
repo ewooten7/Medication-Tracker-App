@@ -15,7 +15,7 @@ DB_USER = 'admin'  # RDS master username
 DB_PASSWORD = 'password123'  # RDS password
 DB_HOST = 'medication-tracker-db.cb6yegc2ilb6.us-east-1.rds.amazonaws.com'  # RDS endpoint
 DB_PORT = '3306'
-DB_NAME = 'medication-tracker'  # Database name
+DB_NAME = 'medication_tracker'  # Database name
 
 app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
