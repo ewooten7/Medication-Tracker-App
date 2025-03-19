@@ -1,0 +1,208 @@
+/* General Styles */
+body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f8f9fa;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Container styles */
+.container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* Navbar styling */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+    color: white;
+}
+
+.nav-link {
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    transform: translateY(-2px);
+}
+
+/* Card styling */
+.card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    font-weight: 600;
+    border-top-left-radius: 8px !important;
+    border-top-right-radius: 8px !important;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.card-img-top {
+    height: 180px;
+    object-fit: cover;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+/* Button styling */
+.btn {
+    border-radius: 4px;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #4a6fdc;
+    border-color: #4a6fdc;
+}
+
+.btn-primary:hover {
+    background-color: #3a5cbc;
+    border-color: #3a5cbc;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background-color: #dc3545;
+    border-color: #dc3545;
+}
+
+.btn-danger:hover {
+    background-color: #c82333;
+    border-color: #bd2130;
+}
+
+.btn-success {
+    background-color: #28a745;
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* Form styling */
+.form-control {
+    border-radius: 4px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #ddd;
+}
+
+.form-control:focus {
+    box-shadow: 0 0 0 0.2rem rgba(74, 111, 220, 0.25);
+    border-color: #4a6fdc;
+}
+
+/* Landing page specific */
+.jumbotron {
+    background-color: #e9ecef;
+    padding: 3rem 2rem;
+    margin-bottom: 2rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(to right, #4a6fdc, #6a8cff);
+    color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.feature-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.feature-icon {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    color: #4a6fdc;
+}
+
+/* Dashboard styling */
+.medication-item {
+    border-left: 4px solid #4a6fdc;
+    transition: all 0.3s ease;
+}
+
+.medication-item:hover {
+    background-color: #f8f9fa;
+}
+
+.medication-item.taken {
+    border-left-color: #28a745;
+}
+
+.medication-item.missed {
+    border-left-color: #dc3545;
+}
+
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.8em;
+}
+
+/* Login/Register Pages */
+.auth-card {
+    max-width: 450px;
+    margin: 3rem auto;
+}
+
+.auth-header {
+    text-align: center;
+    padding: 1.5rem;
+}
+
+.auth-logo {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: #4a6fdc;
+}
+
+/* Progress bars */
+.progress {
+    height: 1.5rem;
+    border-radius: 4px;
+    margin: 1rem 0;
+    background-color: #e9ecef;
+}
+
+.progress-bar {
+    border-radius: 4px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .jumbotron {
+        padding: 2rem 1rem;
+    }
+    
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+    
+    .card-deck .card {
+        margin-bottom: 15px;
+    }
+}

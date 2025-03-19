@@ -1,0 +1,350 @@
+from flask import Flask, render_template, request, redirect, url_for, flash, session
+from flask_sqlalchemy import SQLAlchemy
+from datetime import datetime, date
+import os
+from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
+import uuid
+import boto3
+from botocore.exceptions import NoCredentialsError
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+# Initialize Flask app
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # Change this to a random secret key in production
+
+# Database configuration - MySQL for RDS
+DB_USER = os.environ.get('DB_USER', 'admin')  # RDS master username
+DB_PASSWORD = os.environ.get('DB_PASSWORD', 'your_password_here')  # Get from environment or use placeholder
+DB_HOST = os.environ.get('DB_HOST', 'your-rds-endpoint.region.rds.amazonaws.com')  # Get from environment or use placeholder  
+DB_PORT = '3306'
+DB_NAME = 'medication_tracker'  # Database name
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+# Initialize SQLAlchemy
+db = SQLAlchemy(app)
+
+# S3 configuration
+S3_BUCKET = os.environ.get('S3_BUCKET', 'your-s3-bucket-name')  # Get from environment or use placeholder
+S3_KEY = os.environ.get('S3_KEY', 'YOUR_ACCESS_KEY_HERE')  # Get from environment or use placeholder
+S3_SECRET = os.environ.get('S3_SECRET', 'YOUR_SECRET_KEY_HERE')  # Get from environment or use placeholder
+S3_LOCATION = f'https://{S3_BUCKET}.s3.amazonaws.com/'
+
+# Models
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password_hash = db.Column(db.String(128), nullable=False)
+    medications = db.relationship('Medication', backref='user', lazy=True)
+    
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+class Medication(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    dosage = db.Column(db.String(50), nullable=False)
+    frequency = db.Column(db.String(100), nullable=False)
+    time_of_day = db.Column(db.String(50), nullable=False)
+    how_to_take = db.Column(db.String(50), nullable=True)  # New field for how to take
+    custom_instructions = db.Column(db.String(200), nullable=True)  # For custom/other instructions
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    image_path = db.Column(db.String(255), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    logs = db.relationship('MedicationLog', backref='medication', lazy=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class MedicationLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    medication_id = db.Column(db.Integer, db.ForeignKey('medication.id'), nullable=False)
+    taken_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    taken = db.Column(db.Boolean, default=True)
+    notes = db.Column(db.Text, nullable=True)
+
+# Local file upload function
+def save_file_locally(file):
+    """Save a file to local storage and return the path"""
+    if not file:
+        return None
+        
+    # Create uploads directory if it doesn't exist
+    upload_folder = os.path.join(app.static_folder, 'uploads')
+    if not os.path.exists(upload_folder):
+        os.makedirs(upload_folder)
+    
+    filename = secure_filename(file.filename)
+    unique_filename = f"{uuid.uuid4().hex}-{filename}"
+    file_path = os.path.join(upload_folder, unique_filename)
+    
+    try:
+        file.save(file_path)
+        # Return the relative path for database storage
+        return f"uploads/{unique_filename}"
+    except Exception as e:
+        print(f"Error saving file: {e}")
+        return None
+
+# S3 file upload function
+def upload_file_to_s3(file):
+    """Upload a file to S3 bucket and return the URL"""
+    if not file:
+        return None
+        
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=S3_KEY,
+        aws_secret_access_key=S3_SECRET
+    )
+    
+    filename = secure_filename(file.filename)
+    unique_filename = f"{uuid.uuid4().hex}-{filename}"
+    
+    try:
+        s3.upload_fileobj(
+            file,
+            S3_BUCKET,
+            unique_filename,
+            ExtraArgs={
+                "ACL": "public-read",
+                "ContentType": file.content_type
+            }
+        )
+    except Exception as e:
+        print(f"Error uploading to S3: {e}")
+        # Fall back to local storage if S3 upload fails
+        return save_file_locally(file)
+        
+    return f"{S3_LOCATION}{unique_filename}"
+
+
+# Routes
+@app.route('/')
+def index():
+    # Allow anonymous users to see the landing page
+    return render_template('index.html')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form['username']
+        email = request.form['email']
+        password = request.form['password']
+        
+        user_exists = User.query.filter_by(username=username).first() or User.query.filter_by(email=email).first()
+        if user_exists:
+            flash('Username or email already exists!')
+            return redirect(url_for('register'))
+        
+        new_user = User(username=username, email=email)
+        new_user.set_password(password)
+        
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Account created successfully! Please log in.')
+        return redirect(url_for('login'))
+    
+    return render_template('register.html')
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        
+        user = User.query.filter_by(username=username).first()
+        
+        if user and user.check_password(password):
+            session['user_id'] = user.id
+            flash('Logged in successfully!')
+            return redirect(url_for('dashboard'))
+        
+        flash('Invalid username or password')
+    
+    return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    session.pop('user_id', None)
+    return redirect(url_for('login'))
+
+@app.route('/dashboard')
+def dashboard():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    today = date.today()
+    todays_medications = []
+    
+    for med in user.medications:
+        if med.start_date <= today and (med.end_date is None or med.end_date >= today):
+            # Check if medication has been taken today
+            today_start = datetime.combine(today, datetime.min.time())
+            today_end = datetime.combine(today, datetime.max.time())
+            
+            today_log = MedicationLog.query.filter(
+                MedicationLog.medication_id == med.id,
+                MedicationLog.taken_at >= today_start,
+                MedicationLog.taken_at <= today_end
+            ).first()
+            
+            todays_medications.append({
+                'medication': med,
+                'taken': today_log.taken if today_log else None
+            })
+    
+    return render_template('dashboard.html', medications=todays_medications, user=user)
+
+@app.route('/medications')
+def list_medications():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    user = User.query.get(session['user_id'])
+    medications = Medication.query.filter_by(user_id=user.id).all()
+    
+    return render_template('medications.html', medications=medications)
+
+@app.route('/medications/add', methods=['GET', 'POST'])
+def add_medication():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        name = request.form['name']
+        dosage = request.form['dosage']
+        frequency = request.form['frequency']
+        time_of_day = request.form['time_of_day']
+        how_to_take = request.form['how_to_take']
+        custom_instructions = request.form['custom_instructions'] if 'custom_instructions' in request.form else None
+        start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+        end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date() if request.form['end_date'] else None
+        notes = request.form['notes']
+        
+        # Handle image upload to S3
+        image_path = None
+        if 'medication_image' in request.files and request.files['medication_image'].filename:
+            file = request.files['medication_image']
+            image_path = upload_file_to_s3(file)
+        
+        new_medication = Medication(
+            name=name,
+            dosage=dosage,
+            frequency=frequency,
+            time_of_day=time_of_day,
+            how_to_take=how_to_take,
+            custom_instructions=custom_instructions,
+            start_date=start_date,
+            end_date=end_date,
+            notes=notes,
+            image_path=image_path,
+            user_id=session['user_id']
+        )
+        
+        db.session.add(new_medication)
+        db.session.commit()
+        
+        flash('Medication added successfully!')
+        return redirect(url_for('list_medications'))
+    
+    return render_template('add_medication.html')
+
+@app.route('/medications/log/<int:medication_id>/<string:status>')
+def log_medication(medication_id, status):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    medication = Medication.query.get_or_404(medication_id)
+    
+    # Verify this medication belongs to the current user
+    if medication.user_id != session['user_id']:
+        flash('Unauthorized access!')
+        return redirect(url_for('dashboard'))
+    
+    taken = True if status == 'taken' else False
+    
+    log = MedicationLog(
+        medication_id=medication_id,
+        taken=taken,
+        taken_at=datetime.now()
+    )
+    
+    db.session.add(log)
+    db.session.commit()
+    
+    flash(f'Medication marked as {"taken" if taken else "missed"}!')
+    return redirect(url_for('dashboard'))
+
+@app.route('/medications/edit/<int:id>', methods=['GET', 'POST'])
+def edit_medication(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    medication = Medication.query.get_or_404(id)
+    
+    # Verify this medication belongs to the current user
+    if medication.user_id != session['user_id']:
+        flash('Unauthorized access!')
+        return redirect(url_for('list_medications'))
+    
+    if request.method == 'POST':
+        medication.name = request.form['name']
+        medication.dosage = request.form['dosage']
+        medication.frequency = request.form['frequency']
+        medication.time_of_day = request.form['time_of_day']
+        medication.how_to_take = request.form['how_to_take']
+        medication.custom_instructions = request.form['custom_instructions'] if 'custom_instructions' in request.form else None
+        medication.start_date = datetime.strptime(request.form['start_date'], '%Y-%m-%d').date()
+        medication.end_date = datetime.strptime(request.form['end_date'], '%Y-%m-%d').date() if request.form['end_date'] else None
+        medication.notes = request.form['notes']
+        
+        # Handle image upload to S3
+        if 'medication_image' in request.files and request.files['medication_image'].filename:
+            file = request.files['medication_image']
+            image_path = upload_file_to_s3(file)
+            if image_path:
+                medication.image_path = image_path
+        
+        db.session.commit()
+        flash('Medication updated successfully!')
+        return redirect(url_for('list_medications'))
+    
+    return render_template('edit_medication.html', medication=medication)
+
+@app.route('/medications/delete/<int:id>')
+def delete_medication(id):
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+    
+    medication = Medication.query.get_or_404(id)
+    
+    # Verify this medication belongs to the current user
+    if medication.user_id != session['user_id']:
+        flash('Unauthorized access!')
+        return redirect(url_for('list_medications'))
+    
+    # Delete associated logs
+    MedicationLog.query.filter_by(medication_id=id).delete()
+    
+    db.session.delete(medication)
+    db.session.commit()
+    
+    flash('Medication deleted successfully!')
+    return redirect(url_for('list_medications'))
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()  # Create database tables
+    app.run(debug=True)
